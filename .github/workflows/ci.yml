@@ -1,36 +1,28 @@
 name: CI
 
 on:
-  push:
   pull_request:
+  push:
+    branches: [main]
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v4
-      - run: uv sync --group dev
-      - run: uv run ruff check .
-      - run: uv run ruff format --check .
+  ci:
+    runs-on: ubuntu-24.04
 
-  typecheck:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v4
-      - run: uv sync --group dev
-      - run: uv run mypy src/
+    env:
+      POSTGRES_USER: ci_user
+      POSTGRES_PASSWORD: ci_pwd
+      POSTGRES_DB: ci_db
+      PORT: 5432
 
-  test:
-    runs-on: ubuntu-latest
+    # Services are started and health-checked before the first step starts.
     services:
-      postgres:
+      db:
         image: postgres:16
         env:
-          POSTGRES_USER: server
-          POSTGRES_PASSWORD: server
-          POSTGRES_DB: server_test
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
         ports:
           - 5432:5432
         options: >-
@@ -38,10 +30,26 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 5
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v4
-      - run: uv sync --group dev
-      - run: uv run pytest
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@eac588ad8def6316056a12d4907a9d4d84ff7a3b  # v7.3.0
+
+      - name: Install dependencies
+        run: uv sync --frozen --group dev
+
+      - name: Lint
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: Type-check
+        run: uv run mypy src/
+
+      - name: Test
+        run: uv run pytest ./ -v
         env:
-          DATABASE_URL: postgresql+asyncpg://server:server@localhost:5432/server_test
+          DATABASE_URL: postgresql+asyncpg://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:${{ env.PORT }}/${{ env.POSTGRES_DB }}
