@@ -1,9 +1,10 @@
 # Toy Implementation
 
-A toy implementation of the formal model described in the accompanying blog post.
-The model defines a small set of commands — CREATE, ALTER, DELETE, WATCH, READ —
-operating on entities addressed by paths. This server implements that protocol
-over a plain TCP connection.
+A toy implementation of the formal model described in the [accompanying blog
+post](https://jskri.github.io/posts/entity-protocol.html). The model defines a
+small set of commands — CREATE, ALTER, DELETE, WATCH, READ — operating on
+entities addressed by paths. This server implements that protocol over a plain
+TCP connection.
 
 ---
 
